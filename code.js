@@ -8,17 +8,17 @@
 /////////////////////////
 
 // Alter this to match the incoming webhook url provided by Slack
-var slackIncomingWebhookUrl = 'https://hooks.slack.com/services/YOUR-URL-HERE';
+var slackIncomingWebhookUrl = '';
 
 // Include # for public channels, omit it for private channels
-var postChannel = "YOUR-CHANNEL-HERE";
+var postChannel = "#";
 
 var postIcon = ":mailbox_with_mail:";
 var postUser = "Form Response";
 var postColor = "#0000DD";
 
 var messageFallback = "The attachment must be viewed as plain text.";
-var messagePretext = "A user submitted a response to the form.";
+var messagePretext = "사용자로부터 서버 사용 요청이 들어왔습니다.";
 
 ///////////////////////
 // End customization //
@@ -31,20 +31,18 @@ function initialize() {
     ScriptApp.deleteTrigger(triggers[i]);
   }
   ScriptApp.newTrigger("submitValuesToSlack")
-    .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
+    .forForm(FormApp.getActiveForm())
     .onFormSubmit()
     .create();
 }
 
 // Running the code in initialize() will cause this function to be triggered this on every Form Submit
 function submitValuesToSlack(e) {
-  // Test code. uncomment to debug in Google Script editor
-  // if (typeof e === "undefined") {
-  //   e = {namedValues: {"Question1": ["answer1"], "Question2" : ["answer2"]}};
-  //   messagePretext = "Debugging our Sheets to Slack integration";
-  // }
 
-  var attachments = constructAttachments(e.values);
+  var formResponse = e.response;
+  var itemResponses = formResponse.getItemResponses();
+  
+  var attachments = constructAttachments(itemResponses);
 
   var payload = {
     "channel": postChannel,
@@ -59,7 +57,6 @@ function submitValuesToSlack(e) {
     'payload': JSON.stringify(payload)
   };
 
-  var response = UrlFetchApp.fetch(slackIncomingWebhookUrl, options);
 }
 
 // Creates Slack message attachments which contain the data from the Google Form
@@ -83,12 +80,11 @@ var constructAttachments = function(values) {
 var makeFields = function(values) {
   var fields = [];
 
-  var columnNames = getColumnNames();
-
-  for (var i = 0; i < columnNames.length; i++) {
-    var colName = columnNames[i];
-    var val = values[i];
-    fields.push(makeField(colName, val));
+  for (var i = 0; i < values.length; i++) {
+    var item = values[i];
+    var columnName = item.getItem().getTitle();
+    var val = item.getResponse();
+    fields.push(makeField(columnName,val));
   }
 
   return fields;
@@ -103,17 +99,4 @@ var makeField = function(question, answer) {
     "short" : false
   };
   return field;
-}
-
-// Extracts the column names from the first row of the spreadsheet
-var getColumnNames = function() {
-  var sheet = SpreadsheetApp.getActiveSheet();
-
-  // Get the header row using A1 notation
-  var headerRow = sheet.getRange("1:1");
-
-  // Extract the values from it
-  var headerRowValues = headerRow.getValues()[0];
-
-  return headerRowValues;
 }

@@ -56,7 +56,7 @@ function submitValuesToSlack(e) {
     'method': 'post',
     'payload': JSON.stringify(payload)
   };
-
+  var response = UrlFetchApp.fetch(slackIncomingWebhookUrl, options);
 }
 
 // Creates Slack message attachments which contain the data from the Google Form
